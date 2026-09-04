@@ -24,8 +24,60 @@ document.addEventListener("DOMContentLoaded", () => {
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
-          <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <p class="availability"><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <h5>Participants</h5>
+            <ul class="participant-list"></ul>
+          </div>
         `;
+
+        const participantList = activityCard.querySelector(".participant-list");
+        if (details.participants.length === 0) {
+          const emptyMessage = document.createElement("li");
+          emptyMessage.className = "no-participants";
+          emptyMessage.textContent = "No participants yet";
+          participantList.appendChild(emptyMessage);
+        } else {
+          details.participants.forEach((participant) => {
+            const participantItem = document.createElement("li");
+            const participantName = document.createElement("span");
+            participantName.textContent = participant;
+
+            const removeButton = document.createElement("button");
+            removeButton.className = "remove-participant";
+            removeButton.type = "button";
+            removeButton.setAttribute("aria-label", `Unregister ${participant}`);
+            removeButton.title = "Unregister participant";
+            removeButton.innerHTML = "&times;";
+            removeButton.addEventListener("click", async () => {
+              const response = await fetch(
+                `/activities/${encodeURIComponent(name)}/participants/${encodeURIComponent(participant)}`,
+                { method: "DELETE" }
+              );
+
+              if (!response.ok) {
+                return;
+              }
+
+              participantItem.remove();
+              const availability = activityCard.querySelector(".availability");
+              const participantCount = activityCard.querySelectorAll(
+                ".participant-list li:not(.no-participants)"
+              ).length;
+              availability.innerHTML = `<strong>Availability:</strong> ${details.max_participants - participantCount} spots left`;
+
+              if (participantList.children.length === 0) {
+                const emptyMessage = document.createElement("li");
+                emptyMessage.className = "no-participants";
+                emptyMessage.textContent = "No participants yet";
+                participantList.appendChild(emptyMessage);
+              }
+            });
+
+            participantItem.append(participantName, removeButton);
+            participantList.appendChild(participantItem);
+          });
+        }
 
         activitiesList.appendChild(activityCard);
 
@@ -62,6 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        setTimeout(() => window.location.reload(), 1000);
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
